@@ -151,7 +151,7 @@ export default function PisangKonsultasiPage() {
                           {/* Gejala yang Cocok */}
                           <div>
                             <h4 className="text-lg md:text-xl font-bold text-yellow-900 uppercase mb-2 md:mb-3 border-b-4 border-yellow-700 pb-2">
-                              GEJALA YANG COCOK ({result.matched_symptoms.length} dari {result.total_symptoms})
+                              GEJALA YANG COCOK ({result.matched_symptoms.length} dari {disease.symptoms.length})
                             </h4>
                             <ul className="space-y-2">
                               {disease.symptoms.map((symptom, idx) => (
