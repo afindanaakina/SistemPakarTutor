@@ -1,0 +1,324 @@
+'use client';
+
+import { useState } from 'react';
+import { demoCases } from '../lib/demo-cases';
+import { ForwardChainingEngine } from '../lib/forward-chaining-engine';
+import { InferenceResult } from '../types/forward-chaining';
+import Card from '../components/Card';
+import FlowDiagram from '../components/FlowDiagram';
+import Confetti from '../components/Confetti';
+
+export default function DemoPage() {
+  const [selectedCase, setSelectedCase] = useState(demoCases[0]);
+  const [result, setResult] = useState<InferenceResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [currentAnimStep, setCurrentAnimStep] = useState(-1);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const runInference = () => {
+    setIsRunning(true);
+    setResult(null);
+    setCurrentAnimStep(-1);
+    
+    const engine = new ForwardChainingEngine();
+    
+    setTimeout(() => {
+      const inferenceResult = engine.run(
+        selectedCase.initialFacts,
+        selectedCase.rules,
+        selectedCase.goal
+      );
+      setResult(inferenceResult);
+      setIsRunning(false);
+      
+      if (inferenceResult.goalReached) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+      }
+    }, 500);
+  };
+
+  const playAnimation = () => {
+    if (!result) return;
+    setIsPlaying(true);
+    setCurrentAnimStep(-1);
+    
+    let index = -1;
+    const interval = setInterval(() => {
+      index++;
+      setCurrentAnimStep(index);
+      if (index >= result.steps.length - 1) {
+        clearInterval(interval);
+        setIsPlaying(false);
+      }
+    }, 1500);
+  };
+
+  const resetDemo = () => {
+    setResult(null);
+    setCurrentAnimStep(-1);
+    setIsPlaying(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-8">
+      {showConfetti && <Confetti />}
+      
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            🎬 Demo Kasus Interaktif
+          </h1>
+          <p className="text-gray-600">Lihat forward chaining beraksi dengan contoh kasus nyata</p>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Sidebar - Case Selection */}
+          <div className="lg:col-span-1">
+            <Card title="📚 Pilih Kasus">
+              <div className="space-y-3">
+                {demoCases.map((demoCase) => (
+                  <button
+                    key={demoCase.id}
+                    onClick={() => {
+                      setSelectedCase(demoCase);
+                      setResult(null);
+                      setCurrentAnimStep(-1);
+                    }}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
+                      selectedCase.id === demoCase.id
+                        ? 'border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 shadow-lg'
+                        : 'border-gray-200 hover:border-purple-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-3xl">
+                        {demoCase.category === 'Biologi' && '🦁'}
+                        {demoCase.category === 'Kesehatan' && '🏥'}
+                        {demoCase.category === 'Teknologi' && '💻'}
+                        {demoCase.category === 'Botani' && '🌱'}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900 mb-1">
+                          {demoCase.title}
+                        </h3>
+                        <p className="text-xs text-gray-600 mb-2">
+                          {demoCase.description}
+                        </p>
+                        <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                          {demoCase.category}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card title="📊 Statistik Kasus">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <span className="text-sm font-medium text-green-900">Fakta Awal</span>
+                  <span className="text-2xl font-bold text-green-600">{selectedCase.initialFacts.length}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                  <span className="text-sm font-medium text-purple-900">Aturan</span>
+                  <span className="text-2xl font-bold text-purple-600">{selectedCase.rules.length}</span>
+                </div>
+                {selectedCase.goal && (
+                  <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                    <span className="text-sm font-medium text-yellow-900">Goal</span>
+                    <span className="text-sm font-bold text-yellow-600">{selectedCase.goal}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Case Details */}
+            <Card>
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-4xl">
+                    {selectedCase.category === 'Biologi' && '🦁'}
+                    {selectedCase.category === 'Kesehatan' && '🏥'}
+                    {selectedCase.category === 'Teknologi' && '💻'}
+                    {selectedCase.category === 'Botani' && '🌱'}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{selectedCase.title}</h2>
+                    <p className="text-gray-600">{selectedCase.description}</p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                  {/* Initial Facts */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">
+                        {selectedCase.initialFacts.length}
+                      </span>
+                      Fakta Awal
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedCase.initialFacts.map((fact) => (
+                        <div
+                          key={fact.id}
+                          className="bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 rounded p-3"
+                        >
+                          <p className="font-medium text-green-900 text-sm">{fact.value}</p>
+                          <p className="text-xs text-green-700 mt-1">ID: {fact.id}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Rules */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs">
+                        {selectedCase.rules.length}
+                      </span>
+                      Aturan
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedCase.rules.map((rule, idx) => (
+                        <div
+                          key={rule.id}
+                          className="bg-gradient-to-r from-purple-50 to-purple-100 border-l-4 border-purple-500 rounded p-3"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="w-5 h-5 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs flex-shrink-0">
+                              {idx + 1}
+                            </span>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-purple-900">
+                                {rule.description}
+                              </p>
+                              <p className="text-xs text-purple-700 mt-1">
+                                IF {rule.conditions.join(' AND ')} → {rule.conclusion}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={runInference}
+                    disabled={isRunning}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-lg hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed font-bold transition-all transform hover:scale-105 shadow-lg"
+                  >
+                    {isRunning ? '⏳ Memproses...' : '🚀 Jalankan Inferensi'}
+                  </button>
+                  {result && !isPlaying && (
+                    <>
+                      <button
+                        onClick={playAnimation}
+                        className="px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold transition-all"
+                      >
+                        ▶️ Putar Animasi
+                      </button>
+                      <button
+                        onClick={resetDemo}
+                        className="px-6 py-4 border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-all"
+                      >
+                        🔄 Reset
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Results */}
+            {result && (
+              <>
+                <Card>
+                  <div className={`rounded-xl p-6 ${
+                    result.goalReached
+                      ? 'bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300'
+                      : result.success
+                      ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300'
+                      : 'bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300'
+                  }`}>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl ${
+                        result.goalReached ? 'bg-green-200' : result.success ? 'bg-blue-200' : 'bg-yellow-200'
+                      }`}>
+                        {result.goalReached ? '🎉' : result.success ? '✅' : '⚠️'}
+                      </div>
+                      <div>
+                        <h3 className={`text-xl font-bold ${
+                          result.goalReached ? 'text-green-900' : result.success ? 'text-blue-900' : 'text-yellow-900'
+                        }`}>
+                          {result.message}
+                        </h3>
+                        <div className="flex gap-4 mt-2">
+                          <span className={`text-sm font-medium ${
+                            result.goalReached ? 'text-green-700' : result.success ? 'text-blue-700' : 'text-yellow-700'
+                          }`}>
+                            📝 {result.steps.length} Langkah
+                          </span>
+                          <span className={`text-sm font-medium ${
+                            result.goalReached ? 'text-green-700' : result.success ? 'text-blue-700' : 'text-yellow-700'
+                          }`}>
+                            💡 {result.finalFacts.length} Fakta Total
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Final Facts */}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Fakta Akhir:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {result.finalFacts.map((factId, index) => (
+                          <span
+                            key={index}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                              result.goalReached
+                                ? 'bg-green-200 text-green-800'
+                                : result.success
+                                ? 'bg-blue-200 text-blue-800'
+                                : 'bg-yellow-200 text-yellow-800'
+                            }`}
+                          >
+                            {factId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card title="🔄 Alur Inferensi Step-by-Step">
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    {isPlaying && (
+                      <div className="mb-4 bg-blue-100 border-l-4 border-blue-500 p-4 rounded">
+                        <p className="text-blue-900 font-medium flex items-center gap-2">
+                          <span className="animate-pulse">▶️</span>
+                          Animasi sedang berjalan... (Langkah {currentAnimStep + 1} dari {result.steps.length})
+                        </p>
+                      </div>
+                    )}
+                    <FlowDiagram steps={result.steps} currentStep={isPlaying ? currentAnimStep : -1} />
+                  </div>
+                </Card>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

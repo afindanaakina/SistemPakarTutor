@@ -1,0 +1,548 @@
+'use client';
+
+import { useState } from 'react';
+import { Fact, Rule, InferenceResult } from '../types/forward-chaining';
+import { ForwardChainingEngine } from '../lib/forward-chaining-engine';
+import Card from '../components/Card';
+import FlowDiagram from '../components/FlowDiagram';
+import ProgressBar from '../components/ProgressBar';
+import Confetti from '../components/Confetti';
+
+type WizardStep = 'intro' | 'facts' | 'rules' | 'goal' | 'run' | 'results';
+
+export default function SimulatorPage() {
+  const [currentStep, setCurrentStep] = useState<WizardStep>('intro');
+  const [facts, setFacts] = useState<Fact[]>([]);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [result, setResult] = useState<InferenceResult | null>(null);
+  const [goalFact, setGoalFact] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [currentAnimStep, setCurrentAnimStep] = useState(-1);
+
+  // Form states
+  const [newFactId, setNewFactId] = useState('');
+  const [newFactValue, setNewFactValue] = useState('');
+  const [draggedFact, setDraggedFact] = useState<string | null>(null);
+  const [newRuleConditions, setNewRuleConditions] = useState<string[]>([]);
+  const [newRuleConclusion, setNewRuleConclusion] = useState('');
+  const [newRuleDescription, setNewRuleDescription] = useState('');
+
+  const wizardSteps = ['Intro', 'Tambah Fakta', 'Buat Aturan', 'Set Goal', 'Jalankan'];
+  const stepIndex = {
+    intro: 0,
+    facts: 1,
+    rules: 2,
+    goal: 3,
+    run: 4,
+    results: 4,
+  };
+
+  const addFact = () => {
+    if (!newFactId || !newFactValue) return;
+    const fact: Fact = { id: newFactId, value: newFactValue };
+    setFacts([...facts, fact]);
+    setNewFactId('');
+    setNewFactValue('');
+  };
+
+  const removeFact = (id: string) => setFacts(facts.filter((f) => f.id !== id));
+
+  const addConditionDrop = () => {
+    if (draggedFact && !newRuleConditions.includes(draggedFact)) {
+      setNewRuleConditions([...newRuleConditions, draggedFact]);
+    }
+  };
+
+  const removeCondition = (condition: string) => {
+    setNewRuleConditions(newRuleConditions.filter((c) => c !== condition));
+  };
+
+  const addRule = () => {
+    if (!newRuleConclusion || newRuleConditions.length === 0 || !newRuleDescription) return;
+    const rule: Rule = {
+      id: `rule_${rules.length + 1}`,
+      conditions: newRuleConditions,
+      conclusion: newRuleConclusion,
+      description: newRuleDescription,
+    };
+    setRules([...rules, rule]);
+    setNewRuleConditions([]);
+    setNewRuleConclusion('');
+    setNewRuleDescription('');
+  };
+
+  const removeRule = (id: string) => setRules(rules.filter((r) => r.id !== id));
+
+  const runSimulation = () => {
+    const engine = new ForwardChainingEngine();
+    const inferenceResult = engine.run(facts, rules, goalFact || undefined);
+    setResult(inferenceResult);
+    setCurrentStep('results');
+    
+    if (inferenceResult.success) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      animateSteps(inferenceResult);
+    }
+  };
+
+  const animateSteps = (result: InferenceResult) => {
+    let index = -1;
+    const interval = setInterval(() => {
+      index++;
+      setCurrentAnimStep(index);
+      if (index >= result.steps.length - 1) {
+        clearInterval(interval);
+      }
+    }, 1000);
+  };
+
+  const resetAll = () => {
+    setCurrentStep('intro');
+    setFacts([]);
+    setRules([]);
+    setResult(null);
+    setGoalFact('');
+    setCurrentAnimStep(-1);
+  };
+
+  const loadExample = () => {
+    const exampleFacts: Fact[] = [
+      { id: 'has_fur', value: 'Memiliki bulu' },
+      { id: 'gives_milk', value: 'Menyusui' },
+      { id: 'eats_meat', value: 'Memakan daging' },
+    ];
+    const exampleRules: Rule[] = [
+      {
+        id: 'rule1',
+        conditions: ['has_fur'],
+        conclusion: 'is_mammal',
+        description: 'Jika memiliki bulu maka mamalia',
+      },
+      {
+        id: 'rule2',
+        conditions: ['is_mammal', 'eats_meat'],
+        conclusion: 'is_carnivore',
+        description: 'Jika mamalia dan makan daging maka karnivora',
+      },
+    ];
+    setFacts(exampleFacts);
+    setRules(exampleRules);
+    setGoalFact('is_carnivore');
+    setCurrentStep('run');
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
+      {showConfetti && <Confetti />}
+      
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            🎮 Simulator Interaktif
+          </h1>
+          <p className="text-gray-600">Buat sistem pakar Anda langkah demi langkah</p>
+        </div>
+
+        {/* Progress Bar */}
+        {currentStep !== 'results' && (
+          <ProgressBar
+            currentStep={stepIndex[currentStep]}
+            totalSteps={wizardSteps.length}
+            steps={wizardSteps}
+          />
+        )}
+
+        {/* Intro Step */}
+        {currentStep === 'intro' && (
+          <Card>
+            <div className="text-center py-12">
+              <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Selamat Datang!</h2>
+              <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+                Mari buat sistem pakar forward chaining Anda sendiri. Ikuti langkah-langkah mudah ini untuk memahami cara kerja inferensi.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => setCurrentStep('facts')}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 font-medium text-lg transition-all transform hover:scale-105"
+                >
+                  Mulai dari Awal 🚀
+                </button>
+                <button
+                  onClick={loadExample}
+                  className="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 font-medium text-lg transition-all transform hover:scale-105"
+                >
+                  Muat Contoh 📝
+                </button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Facts Step */}
+        {currentStep === 'facts' && (
+          <div className="space-y-6">
+            <Card title="📦 Langkah 1: Tambahkan Fakta">
+              <div className="space-y-4">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                  <p className="text-blue-900 font-medium">💡 Tips: Fakta adalah informasi yang sudah diketahui. Contoh: "has_fur" (memiliki bulu)</p>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">ID Fakta</label>
+                    <input
+                      type="text"
+                      value={newFactId}
+                      onChange={(e) => setNewFactId(e.target.value)}
+                      placeholder="has_fur"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi</label>
+                    <input
+                      type="text"
+                      value={newFactValue}
+                      onChange={(e) => setNewFactValue(e.target.value)}
+                      placeholder="Memiliki bulu"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={addFact}
+                  className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium transition-all transform hover:scale-105"
+                >
+                  ➕ Tambah Fakta
+                </button>
+              </div>
+            </Card>
+
+            <Card title={`✅ Fakta yang Ditambahkan (${facts.length})`}>
+              {facts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Belum ada fakta. Tambahkan fakta di atas!
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-3">
+                  {facts.map((fact) => (
+                    <div
+                      key={fact.id}
+                      draggable
+                      onDragStart={() => setDraggedFact(fact.id)}
+                      className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300 rounded-lg p-4 cursor-move hover:shadow-lg transition-all"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-green-900">{fact.value}</p>
+                          <p className="text-sm text-green-700">ID: {fact.id}</p>
+                        </div>
+                        <button
+                          onClick={() => removeFact(fact.id)}
+                          className="text-red-600 hover:text-red-800 font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setCurrentStep('intro')}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                ← Kembali
+              </button>
+              <button
+                onClick={() => setCurrentStep('rules')}
+                disabled={facts.length === 0}
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Lanjut ke Aturan →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Rules Step */}
+        {currentStep === 'rules' && (
+          <div className="space-y-6">
+            <Card title="⚙️ Langkah 2: Buat Aturan">
+              <div className="space-y-4">
+                <div className="bg-purple-50 border-l-4 border-purple-500 p-4 mb-4">
+                  <p className="text-purple-900 font-medium">💡 Tips: Drag fakta ke kotak kondisi dan kesimpulan untuk membuat aturan</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Kondisi (IF) - Drag fakta ke sini</label>
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      addConditionDrop();
+                    }}
+                    className="min-h-24 border-4 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50 hover:bg-blue-100 transition-colors"
+                  >
+                    {newRuleConditions.length === 0 ? (
+                      <p className="text-blue-400 text-center py-4">Seret fakta ke sini</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {newRuleConditions.map((cond, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-200 text-blue-900"
+                          >
+                            {cond}
+                            <button
+                              onClick={() => removeCondition(cond)}
+                              className="ml-2 text-blue-700 hover:text-blue-900"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Kesimpulan (THEN)</label>
+                  <input
+                    type="text"
+                    value={newRuleConclusion}
+                    onChange={(e) => setNewRuleConclusion(e.target.value)}
+                    placeholder="is_mammal"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Aturan</label>
+                  <input
+                    type="text"
+                    value={newRuleDescription}
+                    onChange={(e) => setNewRuleDescription(e.target.value)}
+                    placeholder="Jika memiliki bulu maka mamalia"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+
+                <button
+                  onClick={addRule}
+                  className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium transition-all transform hover:scale-105"
+                >
+                  ➕ Tambah Aturan
+                </button>
+              </div>
+            </Card>
+
+            <Card title={`📋 Aturan yang Dibuat (${rules.length})`}>
+              {rules.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Belum ada aturan. Buat aturan di atas!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {rules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      className="bg-gradient-to-r from-purple-50 to-purple-100 border-2 border-purple-300 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-purple-900">{rule.description}</p>
+                          <p className="text-sm text-purple-700 mt-1">
+                            IF {rule.conditions.join(' AND ')} → THEN {rule.conclusion}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeRule(rule.id)}
+                          className="text-red-600 hover:text-red-800 font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <div className="grid md:grid-cols-2 gap-3">
+              {facts.map((fact) => (
+                <div
+                  key={fact.id}
+                  draggable
+                  onDragStart={() => setDraggedFact(fact.id)}
+                  className="bg-green-100 border-2 border-green-300 rounded-lg p-3 cursor-move hover:shadow-lg transition-all"
+                >
+                  <p className="font-medium text-green-900">{fact.value}</p>
+                  <p className="text-xs text-green-700">ID: {fact.id}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setCurrentStep('facts')}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                ← Kembali
+              </button>
+              <button
+                onClick={() => setCurrentStep('goal')}
+                disabled={rules.length === 0}
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Lanjut ke Goal →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Goal Step */}
+        {currentStep === 'goal' && (
+          <div className="space-y-6">
+            <Card title="🎯 Langkah 3: Tentukan Goal (Opsional)">
+              <div className="space-y-4">
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-4">
+                  <p className="text-yellow-900 font-medium">💡 Goal adalah target yang ingin dicapai. Kosongkan jika ingin menjalankan semua aturan.</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ID Goal</label>
+                  <input
+                    type="text"
+                    value={goalFact}
+                    onChange={(e) => setGoalFact(e.target.value)}
+                    placeholder="is_carnivore (kosongkan jika tidak ada goal)"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setCurrentStep('rules')}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                ← Kembali
+              </button>
+              <button
+                onClick={() => setCurrentStep('run')}
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Siap Jalankan! →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Run Step */}
+        {currentStep === 'run' && (
+          <div className="space-y-6">
+            <Card title="🚀 Langkah 4: Review & Jalankan">
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                  <h3 className="font-bold text-lg mb-4">📊 Summary</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-green-600">{facts.length}</div>
+                      <div className="text-sm text-gray-600">Fakta</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-purple-600">{rules.length}</div>
+                      <div className="text-sm text-gray-600">Aturan</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-yellow-600">{goalFact ? '1' : '0'}</div>
+                      <div className="text-sm text-gray-600">Goal</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    onClick={runSimulation}
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-12 py-4 rounded-lg hover:from-green-600 hover:to-green-700 font-bold text-lg transition-all transform hover:scale-110 shadow-lg"
+                  >
+                    🎮 JALANKAN SIMULASI!
+                  </button>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setCurrentStep('goal')}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                ← Kembali
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Results Step */}
+        {currentStep === 'results' && result && (
+          <div className="space-y-6">
+            <Card>
+              <div className="text-center py-6">
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  result.goalReached ? 'bg-green-100' : result.success ? 'bg-blue-100' : 'bg-yellow-100'
+                }`}>
+                  <span className="text-4xl">
+                    {result.goalReached ? '🎉' : result.success ? '✅' : '⚠️'}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{result.message}</h2>
+                <div className="flex gap-6 justify-center mt-4">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-600">{result.steps.length}</div>
+                    <div className="text-sm text-gray-600">Langkah</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600">{result.finalFacts.length}</div>
+                    <div className="text-sm text-gray-600">Total Fakta</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card title="🔄 Alur Inferensi">
+              <FlowDiagram steps={result.steps} currentStep={currentAnimStep} />
+            </Card>
+
+            <div className="flex gap-4">
+              <button
+                onClick={resetAll}
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+              >
+                🔄 Mulai Lagi
+              </button>
+              <button
+                onClick={() => setCurrentStep('run')}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                ← Lihat Summary
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

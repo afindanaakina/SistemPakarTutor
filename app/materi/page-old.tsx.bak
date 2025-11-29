@@ -1,0 +1,221 @@
+import Card from '../components/Card';
+
+export default function MateriPage() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">
+        Materi Forward Chaining
+      </h1>
+
+      <div className="space-y-6">
+        <Card title="1. Pengenalan Sistem Pakar">
+          <div className="prose prose-sm max-w-none">
+            <p className="text-gray-700 mb-4">
+              Sistem pakar (Expert System) adalah sistem komputer yang meniru
+              kemampuan pengambilan keputusan seorang pakar manusia. Sistem ini
+              menggunakan pengetahuan dan prosedur inferensi untuk menyelesaikan
+              masalah yang cukup sulit dan biasanya memerlukan keahlian manusia.
+            </p>
+            <h4 className="font-semibold text-gray-900 mb-2">
+              Komponen Utama Sistem Pakar:
+            </h4>
+            <ul className="list-disc list-inside space-y-2 text-gray-700">
+              <li>
+                <strong>Knowledge Base (Basis Pengetahuan):</strong> Berisi
+                fakta dan aturan tentang domain tertentu
+              </li>
+              <li>
+                <strong>Inference Engine (Mesin Inferensi):</strong> Mekanisme
+                untuk memanipulasi pengetahuan
+              </li>
+              <li>
+                <strong>Working Memory:</strong> Tempat penyimpanan fakta
+                sementara selama proses inferensi
+              </li>
+              <li>
+                <strong>User Interface:</strong> Antarmuka untuk interaksi
+                dengan pengguna
+              </li>
+            </ul>
+          </div>
+        </Card>
+
+        <Card title="2. Forward Chaining">
+          <div className="prose prose-sm max-w-none">
+            <p className="text-gray-700 mb-4">
+              Forward Chaining adalah metode inferensi yang dimulai dari
+              fakta-fakta yang diketahui, kemudian menggunakan aturan-aturan
+              untuk menarik kesimpulan baru hingga mencapai tujuan atau tidak
+              ada aturan yang dapat dijalankan lagi.
+            </p>
+            <h4 className="font-semibold text-gray-900 mb-2">
+              Karakteristik Forward Chaining:
+            </h4>
+            <ul className="list-disc list-inside space-y-2 text-gray-700">
+              <li>Dimulai dari data/fakta yang ada</li>
+              <li>Bersifat data-driven (didorong oleh data)</li>
+              <li>Cocok untuk masalah prediksi dan diagnosis</li>
+              <li>Menghasilkan semua kesimpulan yang mungkin</li>
+            </ul>
+          </div>
+        </Card>
+
+        <Card title="3. Cara Kerja Forward Chaining">
+          <div className="prose prose-sm max-w-none">
+            <h4 className="font-semibold text-gray-900 mb-3">
+              Algoritma Forward Chaining:
+            </h4>
+            <ol className="list-decimal list-inside space-y-3 text-gray-700">
+              <li>
+                <strong>Inisialisasi:</strong>
+                <p className="ml-6 mt-1">
+                  Masukkan semua fakta awal ke dalam working memory
+                </p>
+              </li>
+              <li>
+                <strong>Cari Aturan yang Dapat Dijalankan:</strong>
+                <p className="ml-6 mt-1">
+                  Temukan aturan yang semua kondisinya terpenuhi oleh fakta di
+                  working memory
+                </p>
+              </li>
+              <li>
+                <strong>Jalankan Aturan (Fire Rule):</strong>
+                <p className="ml-6 mt-1">
+                  Tambahkan kesimpulan dari aturan ke working memory sebagai
+                  fakta baru
+                </p>
+              </li>
+              <li>
+                <strong>Ulangi:</strong>
+                <p className="ml-6 mt-1">
+                  Kembali ke langkah 2 hingga tidak ada aturan yang dapat
+                  dijalankan atau tujuan tercapai
+                </p>
+              </li>
+            </ol>
+          </div>
+        </Card>
+
+        <Card title="4. Representasi Pengetahuan">
+          <div className="prose prose-sm max-w-none">
+            <h4 className="font-semibold text-gray-900 mb-3">Aturan (Rule):</h4>
+            <p className="text-gray-700 mb-4">
+              Aturan dalam forward chaining dinyatakan dalam bentuk:
+            </p>
+            <div className="bg-gray-100 rounded p-4 mb-4 font-mono text-sm">
+              <p className="text-gray-800">
+                IF [kondisi1] AND [kondisi2] ... THEN [kesimpulan]
+              </p>
+            </div>
+            <h4 className="font-semibold text-gray-900 mb-3">Contoh:</h4>
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+              <p className="text-gray-800 mb-2">
+                <strong>Aturan 1:</strong> IF hewan memiliki rambut THEN hewan
+                adalah mamalia
+              </p>
+              <p className="text-gray-800 mb-2">
+                <strong>Aturan 2:</strong> IF hewan menyusui THEN hewan adalah
+                mamalia
+              </p>
+              <p className="text-gray-800">
+                <strong>Aturan 3:</strong> IF hewan adalah mamalia AND hewan
+                memakan daging THEN hewan adalah karnivora
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="5. Contoh Kasus">
+          <div className="prose prose-sm max-w-none">
+            <h4 className="font-semibold text-gray-900 mb-3">
+              Identifikasi Hewan:
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium text-gray-900 mb-2">Fakta Awal:</p>
+                <ul className="list-disc list-inside text-gray-700">
+                  <li>Hewan memiliki rambut</li>
+                  <li>Hewan memakan daging</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 mb-2">
+                  Proses Inferensi:
+                </p>
+                <div className="bg-gray-50 rounded p-4 space-y-2">
+                  <p className="text-gray-800">
+                    <strong>Langkah 1:</strong> Aturan 1 terpenuhi (memiliki
+                    rambut) → kesimpulan: mamalia
+                  </p>
+                  <p className="text-gray-800">
+                    <strong>Langkah 2:</strong> Aturan 3 terpenuhi (mamalia +
+                    memakan daging) → kesimpulan: karnivora
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 mb-2">Hasil Akhir:</p>
+                <p className="text-gray-700">
+                  Hewan tersebut adalah <strong>mamalia karnivora</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="6. Kelebihan dan Kekurangan">
+          <div className="prose prose-sm max-w-none">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-green-700 mb-3">
+                  Kelebihan:
+                </h4>
+                <ul className="list-disc list-inside space-y-2 text-gray-700">
+                  <li>Mudah dipahami dan diimplementasikan</li>
+                  <li>Efisien untuk masalah dengan banyak fakta awal</li>
+                  <li>Cocok untuk sistem monitoring dan kontrol</li>
+                  <li>Menghasilkan semua kesimpulan yang mungkin</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-700 mb-3">Kekurangan:</h4>
+                <ul className="list-disc list-inside space-y-2 text-gray-700">
+                  <li>Dapat menghasilkan fakta yang tidak relevan</li>
+                  <li>Kurang efisien jika tujuan sudah diketahui</li>
+                  <li>Membutuhkan memori lebih banyak</li>
+                  <li>Proses bisa lambat dengan banyak aturan</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="font-semibold text-blue-900 mb-2">
+            Siap Mencoba Sendiri?
+          </h3>
+          <p className="text-blue-800 mb-4">
+            Gunakan menu Simulator untuk membuat sistem pakar Anda sendiri
+            dengan drag and drop, atau lihat Demo untuk contoh kasus yang sudah
+            jadi.
+          </p>
+          <div className="flex gap-4">
+            <a
+              href="/simulator"
+              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Buka Simulator
+            </a>
+            <a
+              href="/demo"
+              className="inline-block bg-white text-blue-600 border border-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+            >
+              Lihat Demo
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

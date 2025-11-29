@@ -1,0 +1,464 @@
+'use client';
+
+import { useState } from 'react';
+import { Fact, Rule, InferenceResult } from '../types/forward-chaining';
+import { ForwardChainingEngine } from '../lib/forward-chaining-engine';
+import Card from '../components/Card';
+import FlowDiagram from '../components/FlowDiagram';
+import Confetti from '../components/Confetti';
+import Link from 'next/link';
+
+export default function SimulatorPage() {
+  const [facts, setFacts] = useState<Fact[]>([]);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [result, setResult] = useState<InferenceResult | null>(null);
+  const [goalFact, setGoalFact] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [currentAnimStep, setCurrentAnimStep] = useState(-1);
+
+  // Form states
+  const [newFactId, setNewFactId] = useState('');
+  const [newFactValue, setNewFactValue] = useState('');
+  const [draggedFact, setDraggedFact] = useState<string | null>(null);
+  const [newRuleConditions, setNewRuleConditions] = useState<string[]>([]);
+  const [newRuleConclusion, setNewRuleConclusion] = useState('');
+  const [newRuleDescription, setNewRuleDescription] = useState('');
+
+  const addFact = () => {
+    if (!newFactId || !newFactValue) return;
+    const fact: Fact = { id: newFactId, value: newFactValue };
+    setFacts([...facts, fact]);
+    setNewFactId('');
+    setNewFactValue('');
+  };
+
+  const removeFact = (id: string) => setFacts(facts.filter((f) => f.id !== id));
+
+  const addConditionDrop = () => {
+    if (draggedFact && !newRuleConditions.includes(draggedFact)) {
+      setNewRuleConditions([...newRuleConditions, draggedFact]);
+    }
+  };
+
+  const removeCondition = (condition: string) => {
+    setNewRuleConditions(newRuleConditions.filter((c) => c !== condition));
+  };
+
+  const addRule = () => {
+    if (!newRuleConclusion || newRuleConditions.length === 0 || !newRuleDescription) return;
+    const rule: Rule = {
+      id: `rule_${rules.length + 1}`,
+      conditions: newRuleConditions,
+      conclusion: newRuleConclusion,
+      description: newRuleDescription,
+    };
+    setRules([...rules, rule]);
+    setNewRuleConditions([]);
+    setNewRuleConclusion('');
+    setNewRuleDescription('');
+  };
+
+  const removeRule = (id: string) => setRules(rules.filter((r) => r.id !== id));
+
+  const runSimulation = () => {
+    if (facts.length === 0 || rules.length === 0) {
+      alert('Tambahkan minimal satu fakta dan satu aturan terlebih dahulu!');
+      return;
+    }
+
+    const engine = new ForwardChainingEngine();
+    const inferenceResult = engine.run(facts, rules, goalFact || undefined);
+    setResult(inferenceResult);
+    
+    if (inferenceResult.success) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      animateSteps(inferenceResult);
+    }
+  };
+
+  const animateSteps = (result: InferenceResult) => {
+    let index = -1;
+    const interval = setInterval(() => {
+      index++;
+      setCurrentAnimStep(index);
+      if (index >= result.steps.length - 1) {
+        clearInterval(interval);
+      }
+    }, 1500);
+  };
+
+  const resetAll = () => {
+    setFacts([]);
+    setRules([]);
+    setResult(null);
+    setGoalFact('');
+    setCurrentAnimStep(-1);
+  };
+
+  const loadExample = () => {
+    const exampleFacts: Fact[] = [
+      { id: 'has_fur', value: 'Memiliki bulu' },
+      { id: 'gives_milk', value: 'Menyusui' },
+      { id: 'eats_meat', value: 'Memakan daging' },
+    ];
+    const exampleRules: Rule[] = [
+      {
+        id: 'rule1',
+        conditions: ['has_fur'],
+        conclusion: 'is_mammal',
+        description: 'Jika memiliki bulu maka mamalia',
+      },
+      {
+        id: 'rule2',
+        conditions: ['is_mammal', 'eats_meat'],
+        conclusion: 'is_carnivore',
+        description: 'Jika mamalia dan makan daging maka karnivora',
+      },
+    ];
+    setFacts(exampleFacts);
+    setRules(exampleRules);
+    setGoalFact('is_carnivore');
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
+      {showConfetti && <Confetti />}
+      
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Breadcrumb */}
+        <div className="mb-6 text-sm text-gray-600">
+          <Link href="/" className="hover:text-blue-600">Beranda</Link>
+          <span className="mx-2">/</span>
+          <Link href="/pengenalan" className="hover:text-blue-600">Sistem Pakar</Link>
+          <span className="mx-2">/</span>
+          <Link href="/materi" className="hover:text-blue-600">Forward Chaining</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900 font-medium">Simulator</span>
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Simulator Interaktif
+          </h1>
+          <p className="text-gray-600">Buat sistem pakar forward chaining Anda sendiri</p>
+        </div>
+
+        {/* Tutorial Banner */}
+        <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+          <h3 className="font-bold text-blue-900 mb-2">Cara Menggunakan Simulator:</h3>
+          <ol className="list-decimal list-inside space-y-1 text-blue-800 text-sm">
+            <li>Tambahkan <strong>Fakta Awal</strong> (data yang sudah diketahui)</li>
+            <li>Buat <strong>Aturan</strong> dengan drag & drop fakta ke kondisi dan kesimpulan</li>
+            <li>Tentukan <strong>Goal</strong> jika ada (opsional)</li>
+            <li>Klik <strong>Jalankan Simulasi</strong> untuk melihat proses inferensi</li>
+            <li>Atau klik <strong>Muat Contoh</strong> untuk melihat demo cepat</li>
+          </ol>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          {/* Left Column - Input Forms */}
+          <div className="space-y-6">
+            {/* Add Facts */}
+            <Card title="1. Tambah Fakta Awal">
+              <div className="space-y-4">
+                <div className="bg-green-50 border-l-4 border-green-500 p-3 text-sm text-green-800">
+                  <strong>Contoh:</strong> ID: "has_fur", Deskripsi: "Memiliki bulu"
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">ID Fakta</label>
+                    <input
+                      type="text"
+                      value={newFactId}
+                      onChange={(e) => setNewFactId(e.target.value)}
+                      placeholder="has_fur"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Fakta</label>
+                    <input
+                      type="text"
+                      value={newFactValue}
+                      onChange={(e) => setNewFactValue(e.target.value)}
+                      placeholder="Memiliki bulu"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={addFact}
+                  className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium transition-all"
+                >
+                  + Tambah Fakta
+                </button>
+              </div>
+            </Card>
+
+            {/* Facts List */}
+            <Card title={`Fakta yang Tersedia (${facts.length})`}>
+              <div className="text-sm text-gray-600 mb-3">
+                Seret fakta ini ke area pembuatan aturan di sebelah kanan
+              </div>
+              {facts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Belum ada fakta. Tambahkan fakta terlebih dahulu.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {facts.map((fact) => (
+                    <div
+                      key={fact.id}
+                      draggable
+                      onDragStart={() => setDraggedFact(fact.id)}
+                      className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300 rounded-lg p-3 cursor-move hover:shadow-lg transition-all"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-green-900">{fact.value}</p>
+                          <p className="text-sm text-green-700">ID: {fact.id}</p>
+                        </div>
+                        <button
+                          onClick={() => removeFact(fact.id)}
+                          className="text-red-600 hover:text-red-800 font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Right Column - Rule Builder */}
+          <div className="space-y-6">
+            {/* Create Rules */}
+            <Card title="2. Buat Aturan (IF-THEN)">
+              <div className="space-y-4">
+                <div className="bg-purple-50 border-l-4 border-purple-500 p-3 text-sm text-purple-800">
+                  <strong>Cara:</strong> Drag fakta dari kiri ke kotak Kondisi (IF) dan Kesimpulan (THEN)
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Kondisi (IF) - Drag fakta ke sini
+                  </label>
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      addConditionDrop();
+                    }}
+                    className="min-h-24 border-4 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50"
+                  >
+                    {newRuleConditions.length === 0 ? (
+                      <p className="text-blue-400 text-center py-4">Seret fakta ke sini</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {newRuleConditions.map((cond, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-200 text-blue-900"
+                          >
+                            {cond}
+                            <button
+                              onClick={() => removeCondition(cond)}
+                              className="ml-2 text-blue-700 hover:text-blue-900"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Kesimpulan (THEN) - ID fakta baru
+                  </label>
+                  <input
+                    type="text"
+                    value={newRuleConclusion}
+                    onChange={(e) => setNewRuleConclusion(e.target.value)}
+                    placeholder="is_mammal"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Deskripsi Aturan
+                  </label>
+                  <input
+                    type="text"
+                    value={newRuleDescription}
+                    onChange={(e) => setNewRuleDescription(e.target.value)}
+                    placeholder="Jika memiliki bulu maka mamalia"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+
+                <button
+                  onClick={addRule}
+                  className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium transition-all"
+                >
+                  + Tambah Aturan
+                </button>
+              </div>
+            </Card>
+
+            {/* Rules List */}
+            <Card title={`Aturan yang Dibuat (${rules.length})`}>
+              {rules.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Belum ada aturan. Buat aturan terlebih dahulu.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {rules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      className="bg-gradient-to-r from-purple-50 to-purple-100 border-2 border-purple-300 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-purple-900">{rule.description}</p>
+                          <p className="text-sm text-purple-700 mt-1">
+                            IF {rule.conditions.join(' AND ')} THEN {rule.conclusion}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeRule(rule.id)}
+                          className="text-red-600 hover:text-red-800 font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+
+        {/* Control Panel */}
+        <Card title="3. Jalankan Simulasi">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Goal / Target (Opsional)
+              </label>
+              <input
+                type="text"
+                value={goalFact}
+                onChange={(e) => setGoalFact(e.target.value)}
+                placeholder="Contoh: is_carnivore (kosongkan jika tidak ada goal)"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Goal adalah ID fakta yang ingin dicapai. Kosongkan untuk menjalankan semua aturan yang mungkin.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={runSimulation}
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-lg hover:from-green-600 hover:to-green-700 font-bold text-lg transition-all shadow-lg"
+              >
+                Jalankan Simulasi
+              </button>
+              <button
+                onClick={loadExample}
+                className="px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-all"
+              >
+                Muat Contoh
+              </button>
+              <button
+                onClick={resetAll}
+                className="px-6 py-4 border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 font-medium transition-all"
+              >
+                Reset Semua
+              </button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Results */}
+        {result && (
+          <div className="mt-8 space-y-6">
+            <Card title="Hasil Simulasi">
+              <div className={`rounded-xl p-6 ${
+                result.goalReached
+                  ? 'bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300'
+                  : result.success
+                  ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300'
+                  : 'bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300'
+              }`}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl ${
+                    result.goalReached ? 'bg-green-200' : result.success ? 'bg-blue-200' : 'bg-yellow-200'
+                  }`}>
+                    {result.goalReached ? '✓' : result.success ? '✓' : '!'}
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-bold ${
+                      result.goalReached ? 'text-green-900' : result.success ? 'text-blue-900' : 'text-yellow-900'
+                    }`}>
+                      {result.message}
+                    </h3>
+                    <div className="flex gap-4 mt-2">
+                      <span className={`text-sm font-medium ${
+                        result.goalReached ? 'text-green-700' : result.success ? 'text-blue-700' : 'text-yellow-700'
+                      }`}>
+                        Langkah: {result.steps.length}
+                      </span>
+                      <span className={`text-sm font-medium ${
+                        result.goalReached ? 'text-green-700' : result.success ? 'text-blue-700' : 'text-yellow-700'
+                      }`}>
+                        Total Fakta: {result.finalFacts.length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Fakta Akhir:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {result.finalFacts.map((factId, index) => (
+                      <span
+                        key={index}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                          result.goalReached
+                            ? 'bg-green-200 text-green-800'
+                            : result.success
+                            ? 'bg-blue-200 text-blue-800'
+                            : 'bg-yellow-200 text-yellow-800'
+                        }`}
+                      >
+                        {factId}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card title="Alur Inferensi Step-by-Step">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <FlowDiagram steps={result.steps} currentStep={currentAnimStep} />
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
